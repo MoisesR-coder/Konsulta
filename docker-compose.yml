@@ -1,10 +1,8 @@
-version: '3.8'
-
 services:
   # MySQL Database
   mysql:
     image: mysql:8.0
-    container_name: pension-mysql
+    container_name: konsulta-mysql
     restart: unless-stopped
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-pension_root_2024}
@@ -14,7 +12,7 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - pension-network
+      - konsulta-network
     ports:
       - "3307:3306"
     command: --default-authentication-plugin=mysql_native_password
@@ -30,7 +28,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: pension-backend
+    container_name: konsulta-backend
     restart: unless-stopped
     environment:
       - ENVIRONMENT=production
@@ -44,7 +42,7 @@ services:
     volumes:
       - backend_data:/app/processed_files
     networks:
-      - pension-network
+      - konsulta-network
     ports:
       - "8000:8000"
     depends_on:
@@ -75,7 +73,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: pension-frontend
+    container_name: konsulta-frontend
     restart: unless-stopped
     ports:
       - "80:80"
@@ -83,7 +81,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - pension-network
+      - konsulta-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/health"]
       interval: 30s
@@ -117,13 +115,13 @@ volumes:
     driver: local
 
 networks:
-  pension-network:
+  konsulta-network:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/16
+        - subnet: 172.21.0.0/16
     driver_opts:
-      com.docker.network.bridge.name: pension-br0
+      com.docker.network.bridge.name: konsulta-br0
       com.docker.network.bridge.enable_icc: "true"
       com.docker.network.bridge.enable_ip_masquerade: "true"
       com.docker.network.driver.mtu: "1500"
