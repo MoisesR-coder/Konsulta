@@ -2,19 +2,19 @@ services:
   # MySQL Database
   mysql:
     image: mysql:8.0
-    container_name: konsulta-mysql
+    container_name: pension-mysql-prod
     restart: unless-stopped
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-pension_root_2024}
-      - MYSQL_DATABASE=${MYSQL_DATABASE:-plantillas_db}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-pension_db}
       - MYSQL_USER=${MYSQL_USER:-pension_user}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-pension_pass_2024}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-pension_password}
     volumes:
       - mysql_data:/var/lib/mysql
     networks:
-      - konsulta-network
+      - pension-network
     ports:
-      - "3307:3306"
+      - "3306:3306"
     command: --default-authentication-plugin=mysql_native_password
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
@@ -28,22 +28,22 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: konsulta-backend
+    container_name: pension-backend-prod
     restart: unless-stopped
     environment:
       - ENVIRONMENT=production
-      - SECRET_KEY=${SECRET_KEY}
-      - ALGORITHM=${ALGORITHM}
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-here}
+      - ALGORITHM=${ALGORITHM:-HS256}
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USER=${MYSQL_USER:-pension_user}
-      - DB_PASSWORD=${MYSQL_PASSWORD:-pension_pass_2024}
-      - DB_NAME=${MYSQL_DATABASE:-plantillas_db}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-pension_password}
+      - DB_NAME=${MYSQL_DATABASE:-pension_db}
       - CORS_ORIGINS=http://31.220.98.150:81,http://31.220.98.150,http://localhost:5173,http://127.0.0.1:5173
     volumes:
       - backend_data:/app/processed_files
     networks:
-      - konsulta-network
+      - pension-network
     ports:
       - "8000:8000"
     depends_on:
@@ -74,7 +74,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: konsulta-frontend
+      args:
+        - VITE_API_BASE_URL=http://31.220.98.150:81/api
+    container_name: pension-frontend-prod
     restart: unless-stopped
     environment:
       - VITE_API_BASE_URL=http://31.220.98.150:81/api
@@ -84,7 +86,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - konsulta-network
+      - pension-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/health"]
       interval: 30s
@@ -118,13 +120,13 @@ volumes:
     driver: local
 
 networks:
-  konsulta-network:
+  pension-network:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.21.0.0/16
+        - subnet: 172.22.0.0/16
     driver_opts:
-      com.docker.network.bridge.name: konsulta-br0
+      com.docker.network.bridge.name: pension-br0
       com.docker.network.bridge.enable_icc: "true"
       com.docker.network.bridge.enable_ip_masquerade: "true"
       com.docker.network.driver.mtu: "1500"
