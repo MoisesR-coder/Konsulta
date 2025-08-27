@@ -8,11 +8,14 @@ RUN apk add --no-cache git
 # Crear directorio de trabajo
 WORKDIR /app
 
-# Copiar package.json y package-lock.json
-COPY package*.json ./
+# Configurar variable de entorno para build
+ARG VITE_API_BASE_URL=http://31.220.98.150:81/api
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
+# Copiar package.json y package-lock.json
+COPY package*.json ./n
 # Instalar dependencias
-    RUN npm ci --silent
+RUN npm ci --silent
 
 # Copiar código fuente
 COPY . .
