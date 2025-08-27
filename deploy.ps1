@@ -1,135 +1,131 @@
-# Script de despliegue para Windows PowerShell
-# Servidor: facturacion.konsulta.ivitec.mx (31.220.98.150)
+# Script de deployment para producción (PowerShell)
+# Servidor: 31.220.98.150
+# Puertos: Frontend 8080, Backend 8000, MySQL 3306
 
-param(
-    [string]$ServerHost = "facturacion.konsulta.ivitec.mx",
-    [string]$ServerUser = "root",
-    [string]$AppDir = "/opt/pension-app"
-)
+$ErrorActionPreference = "Stop"
 
-Write-Host "🚀 Iniciando despliegue en servidor de producción..." -ForegroundColor Green
+Write-Host "🚀 Iniciando deployment de la aplicación Auth..." -ForegroundColor Green
+Write-Host "📍 Servidor: 31.220.98.150" -ForegroundColor Cyan
+Write-Host "🌐 Frontend: Puerto 8080" -ForegroundColor Cyan
+Write-Host "⚙️  Backend: Puerto 8000" -ForegroundColor Cyan
+Write-Host "🗄️  Base de datos: Puerto 3306" -ForegroundColor Cyan
+Write-Host ""
 
-# Variables
-$DeployDir = "./deploy-temp"
-$RemoteDir = $AppDir
-
+# Verificar que Docker esté ejecutándose
 try {
-    Write-Host "📦 Preparando archivos para despliegue..." -ForegroundColor Yellow
-    
-    # Limpiar y crear directorio temporal
-    if (Test-Path $DeployDir) {
-        Remove-Item -Recurse -Force $DeployDir
-    }
-    New-Item -ItemType Directory -Path $DeployDir -Force | Out-Null
-    
-    # Copiar archivos necesarios
-    Copy-Item -Recurse "backend" "$DeployDir/"
-    Copy-Item -Recurse "frontend" "$DeployDir/"
-    Copy-Item "docker-compose.prod.yml" "$DeployDir/docker-compose.yml"
-    Copy-Item ".env.prod" "$DeployDir/.env"
-    
-    # Crear directorio para archivos procesados
-    New-Item -ItemType Directory -Path "$DeployDir/data/processed_files" -Force | Out-Null
-    
-    Write-Host "🔧 Configurando servidor remoto..." -ForegroundColor Yellow
-    
-    # Comandos para ejecutar en el servidor remoto
-    $RemoteCommands = @"
-# Actualizar sistema
-apt-get update -y
-
-# Instalar Docker si no está instalado
-if ! command -v docker &> /dev/null; then
-    echo "Instalando Docker..."
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sh get-docker.sh
-    systemctl start docker
-    systemctl enable docker
-fi
-
-# Instalar Docker Compose si no está instalado
-if ! command -v docker-compose &> /dev/null; then
-    echo "Instalando Docker Compose..."
-    curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-`$(uname -s)-`$(uname -m)" -o /usr/local/bin/docker-compose
-    chmod +x /usr/local/bin/docker-compose
-fi
-
-# Crear directorio de la aplicación
-mkdir -p $RemoteDir
-
-# Detener contenedores existentes si los hay
-cd $RemoteDir
-if [ -f docker-compose.yml ]; then
-    docker-compose down || true
-fi
-"@
-    
-    # Ejecutar comandos de configuración en el servidor
-    Write-Host "Configurando Docker en el servidor..." -ForegroundColor Cyan
-    $RemoteCommands | ssh "${ServerUser}@${ServerHost}" bash -s
-    
-    Write-Host "📤 Transfiriendo archivos al servidor..." -ForegroundColor Yellow
-    
-    # Usar scp para transferir archivos (requiere que tengas scp instalado)
-    # Alternativa: usar rsync si está disponible en Windows
-    scp -r "$DeployDir/*" "$ServerUser@$ServerHost`:$RemoteDir/"
-    
-    Write-Host "🐳 Iniciando contenedores en el servidor..." -ForegroundColor Yellow
-    
-    # Comandos para construir y ejecutar en el servidor
-    $DeployCommands = @"
-cd $RemoteDir
-
-# Construir y ejecutar contenedores
-docker-compose build --no-cache
-docker-compose up -d
-
-# Esperar a que los servicios estén listos
-echo "Esperando a que los servicios estén listos..."
-sleep 30
-
-# Verificar estado de los contenedores
-docker-compose ps
-
-# Reconstruir imágenes para asegurar configuración actualizada
-echo "Reconstruyendo imágenes Docker..."
-docker-compose build --no-cache
-
-# Iniciar servicios
-echo "Iniciando servicios..."
-docker-compose up -d
-
-# Verificar salud de los servicios
-echo "Verificando salud del backend..."
-curl -f http://31.220.98.150:8000/health || echo "Backend no responde"
-
-echo "Verificando frontend..."
-curl -f http://31.220.98.150:81 || echo "Frontend no responde"
-
-echo "Verificando logs de contenedores..."
-docker-compose logs --tail=20
-"@
-    
-    # Ejecutar comandos de despliegue
-    $DeployCommands | ssh "${ServerUser}@${ServerHost}" bash -s
-    
-    Write-Host "✅ Despliegue completado!" -ForegroundColor Green
-    Write-Host "🌐 Aplicación disponible en: http://facturacion.konsulta.ivitec.mx" -ForegroundColor Green
-    Write-Host "🔧 API disponible en: http://facturacion.konsulta.ivitec.mx:8000" -ForegroundColor Green
-    
-}
-catch {
-    Write-Host "❌ Error durante el despliegue: $($_.Exception.Message)" -ForegroundColor Red
+    docker info | Out-Null
+} catch {
+    Write-Host "❌ Error: Docker no está ejecutándose" -ForegroundColor Red
     exit 1
 }
-finally {
-    # Limpiar archivos temporales
-    if (Test-Path $DeployDir) {
-        Remove-Item -Recurse -Force $DeployDir
+
+Write-Host "🔧 Deteniendo servicios existentes..." -ForegroundColor Yellow
+try {
+    docker compose down --remove-orphans
+} catch {
+    Write-Host "⚠️  No hay servicios previos para detener" -ForegroundColor Yellow
+}
+
+Write-Host "🧹 Limpiando imágenes antiguas..." -ForegroundColor Yellow
+docker system prune -f
+
+Write-Host "🏗️  Construyendo imágenes..." -ForegroundColor Blue
+docker compose build --no-cache --parallel
+
+Write-Host "🚀 Iniciando servicios..." -ForegroundColor Green
+docker compose up -d
+
+Write-Host "⏳ Esperando que los servicios estén listos..." -ForegroundColor Yellow
+Start-Sleep -Seconds 30
+
+# Verificar estado de los contenedores
+Write-Host "📊 Estado de los contenedores:" -ForegroundColor Cyan
+docker compose ps
+
+# Health checks
+Write-Host "🏥 Verificando salud de los servicios..." -ForegroundColor Blue
+
+# Verificar backend
+Write-Host "🔍 Verificando backend (31.220.98.150:8000)..." -ForegroundColor Blue
+$backendReady = $false
+for ($i = 1; $i -le 10; $i++) {
+    try {
+        $response = Invoke-WebRequest -Uri "http://31.220.98.150:8000/health" -Method GET -TimeoutSec 10
+        if ($response.StatusCode -eq 200) {
+            Write-Host "✅ Backend está funcionando correctamente" -ForegroundColor Green
+            $backendReady = $true
+            break
+        }
+    } catch {
+        Write-Host "⏳ Intento $i/10: Backend no está listo, esperando..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 10
     }
 }
 
-Write-Host "📋 Comandos útiles para el servidor:" -ForegroundColor Yellow
-Write-Host "  - Ver logs: ssh ${ServerUser}@${ServerHost} 'cd ${RemoteDir} && docker-compose logs -f'" -ForegroundColor Cyan
-Write-Host "  - Reiniciar: ssh ${ServerUser}@${ServerHost} 'cd ${RemoteDir} && docker-compose restart'" -ForegroundColor Cyan
-Write-Host "  - Detener: ssh ${ServerUser}@${ServerHost} 'cd ${RemoteDir} && docker-compose down'" -ForegroundColor Cyan
+if (-not $backendReady) {
+    Write-Host "❌ Backend no responde después de 10 intentos" -ForegroundColor Red
+    Write-Host "📋 Logs del backend:" -ForegroundColor Yellow
+    docker compose logs backend --tail=50
+    exit 1
+}
+
+# Verificar frontend
+Write-Host "🔍 Verificando frontend (31.220.98.150:8080)..." -ForegroundColor Blue
+$frontendReady = $false
+for ($i = 1; $i -le 10; $i++) {
+    try {
+        $response = Invoke-WebRequest -Uri "http://31.220.98.150:8080/" -Method GET -TimeoutSec 10
+        if ($response.StatusCode -eq 200) {
+            Write-Host "✅ Frontend está funcionando correctamente" -ForegroundColor Green
+            $frontendReady = $true
+            break
+        }
+    } catch {
+        Write-Host "⏳ Intento $i/10: Frontend no está listo, esperando..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 10
+    }
+}
+
+if (-not $frontendReady) {
+    Write-Host "❌ Frontend no responde después de 10 intentos" -ForegroundColor Red
+    Write-Host "📋 Logs del frontend:" -ForegroundColor Yellow
+    docker compose logs frontend --tail=50
+    exit 1
+}
+
+# Verificar base de datos
+Write-Host "🔍 Verificando base de datos..." -ForegroundColor Blue
+$dbReady = $false
+for ($i = 1; $i -le 10; $i++) {
+    try {
+        $result = docker compose exec -T db mysqladmin ping -h localhost --silent
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ Base de datos está funcionando correctamente" -ForegroundColor Green
+            $dbReady = $true
+            break
+        }
+    } catch {
+        Write-Host "⏳ Intento $i/10: Base de datos no está lista, esperando..." -ForegroundColor Yellow
+        Start-Sleep -Seconds 10
+    }
+}
+
+if (-not $dbReady) {
+    Write-Host "❌ Base de datos no responde después de 10 intentos" -ForegroundColor Red
+    Write-Host "📋 Logs de la base de datos:" -ForegroundColor Yellow
+    docker compose logs db --tail=50
+    exit 1
+}
+
+Write-Host ""
+Write-Host "🎉 ¡Deployment completado exitosamente!" -ForegroundColor Green
+Write-Host "📱 Aplicación disponible en: http://31.220.98.150:8080" -ForegroundColor Cyan
+Write-Host "🔧 API disponible en: http://31.220.98.150:8000" -ForegroundColor Cyan
+Write-Host "🗄️  Base de datos disponible en: 31.220.98.150:3306" -ForegroundColor Cyan
+Write-Host ""
+Write-Host "📋 Para ver logs en tiempo real:" -ForegroundColor Yellow
+Write-Host "   docker compose logs -f" -ForegroundColor White
+Write-Host ""
+Write-Host "🛑 Para detener la aplicación:" -ForegroundColor Yellow
+Write-Host "   docker compose down" -ForegroundColor White
+Write-Host ""

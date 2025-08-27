@@ -1,128 +1,109 @@
 #!/bin/bash
 
-# Script de despliegue para el servidor de producción
-# Servidor: facturacion.konsulta.ivitec.mx (31.220.98.150)
+# Script de deployment para producción
+# Servidor: 31.220.98.150
+# Puertos: Frontend 8080, Backend 8000, MySQL 3306
 
 set -e
 
-echo "🚀 Iniciando despliegue en servidor de producción..."
+echo "🚀 Iniciando deployment de la aplicación Auth..."
+echo "📍 Servidor: 31.220.98.150"
+echo "🌐 Frontend: Puerto 8080"
+echo "⚙️  Backend: Puerto 8000"
+echo "🗄️  Base de datos: Puerto 3306"
+echo ""
 
-# Variables del servidor
-SERVER_HOST="facturacion.konsulta.ivitec.mx"
-SERVER_USER="root"
-APP_DIR="/opt/pension-app"
-REMOTE_DIR="$APP_DIR"
+# Verificar que Docker esté ejecutándose
+if ! docker info > /dev/null 2>&1; then
+    echo "❌ Error: Docker no está ejecutándose"
+    exit 1
+fi
 
-# Colores para output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+echo "🔧 Deteniendo servicios existentes..."
+docker compose down --remove-orphans || true
 
-echo -e "${YELLOW}📦 Preparando archivos para despliegue...${NC}"
+echo "🧹 Limpiando imágenes antiguas..."
+docker system prune -f
 
-# Crear directorio temporal para el despliegue
-DEPLOY_DIR="./deploy-temp"
-rm -rf $DEPLOY_DIR
-mkdir -p $DEPLOY_DIR
+echo "🏗️  Construyendo imágenes..."
+docker compose build --no-cache --parallel
 
-# Copiar archivos necesarios
-cp -r backend $DEPLOY_DIR/
-cp -r frontend $DEPLOY_DIR/
-cp docker-compose.prod.yml $DEPLOY_DIR/docker-compose.yml
-cp .env.prod $DEPLOY_DIR/.env
+echo "🚀 Iniciando servicios..."
+docker compose up -d
 
-# Crear directorio para archivos procesados
-mkdir -p $DEPLOY_DIR/data/processed_files
+echo "⏳ Esperando que los servicios estén listos..."
+sleep 30
 
-echo -e "${YELLOW}🔧 Configurando servidor remoto...${NC}"
+# Verificar estado de los contenedores
+echo "📊 Estado de los contenedores:"
+docker compose ps
 
-# Conectar al servidor y preparar el entorno
-ssh $SERVER_USER@$SERVER_HOST << 'ENDSSH'
-    # Actualizar sistema
-    apt-get update
-    
-    # Instalar Docker si no está instalado
-    if ! command -v docker &> /dev/null; then
-        echo "Instalando Docker..."
-        curl -fsSL https://get.docker.com -o get-docker.sh
-        sh get-docker.sh
-        systemctl start docker
-        systemctl enable docker
-    fi
-    
-    # Instalar Docker Compose si no está instalado
-    if ! command -v docker-compose &> /dev/null; then
-        echo "Instalando Docker Compose..."
-        curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        chmod +x /usr/local/bin/docker-compose
-    fi
-    
-    # Crear directorio de la aplicación
-    mkdir -p /opt/pension-app
-    
-    # Detener contenedores existentes si los hay
-    cd /opt/pension-app
-    if [ -f docker-compose.yml ]; then
-        docker-compose down || true
-    fi
-ENDSSH
+# Health checks
+echo "🏥 Verificando salud de los servicios..."
 
-echo -e "${YELLOW}📤 Transfiriendo archivos al servidor...${NC}"
-
-# Transferir archivos al servidor
-rsync -avz --delete $DEPLOY_DIR/ $SERVER_USER@$SERVER_HOST:$REMOTE_DIR/
-
-echo -e "${YELLOW}🐳 Iniciando contenedores en el servidor...${NC}"
-
-# Ejecutar en el servidor remoto
-ssh $SERVER_USER@$SERVER_HOST << ENDSSH
-    cd $REMOTE_DIR
-    
-    # Construir y ejecutar contenedores
-    docker-compose build --no-cache
-    docker-compose up -d
-    
-    # Esperar a que los servicios estén listos
-    echo "Esperando a que los servicios estén listos..."
-    sleep 30
-    
-    # Verificar estado de los contenedores
-    docker-compose ps
-    
-    # Verificar que los servicios estén funcionando
-    echo "Verificando servicios..."
-    sleep 15
-    
-    # Verificar backend
-    if curl -f http://31.220.98.150:8000/health > /dev/null 2>&1; then
-        echo "✓ Backend funcionando correctamente"
+# Verificar backend
+echo "🔍 Verificando backend (31.220.98.150:8000)..."
+for i in {1..10}; do
+    if curl -f -s http://31.220.98.150:8000/health > /dev/null; then
+        echo "✅ Backend está funcionando correctamente"
+        break
     else
-        echo "✗ Error: Backend no responde"
+        echo "⏳ Intento $i/10: Backend no está listo, esperando..."
+        sleep 10
     fi
-    
-    # Verificar frontend
-    if curl -f http://31.220.98.150:81/health > /dev/null 2>&1; then
-        echo "✓ Frontend funcionando correctamente"
+    if [ $i -eq 10 ]; then
+        echo "❌ Backend no responde después de 10 intentos"
+        echo "📋 Logs del backend:"
+        docker compose logs backend --tail=50
+        exit 1
+    fi
+done
+
+# Verificar frontend
+echo "🔍 Verificando frontend (31.220.98.150:8080)..."
+for i in {1..10}; do
+    if curl -f -s http://31.220.98.150:8080/ > /dev/null; then
+        echo "✅ Frontend está funcionando correctamente"
+        break
     else
-        echo "✗ Error: Frontend no responde"
+        echo "⏳ Intento $i/10: Frontend no está listo, esperando..."
+        sleep 10
     fi
-    
-    # Mostrar logs si hay problemas
-    if ! curl -f http://31.220.98.150:8000/health > /dev/null 2>&1 || ! curl -f http://31.220.98.150:81/health > /dev/null 2>&1; then
-        echo "Verificando logs de contenedores..."
-        docker-compose logs --tail=20
+    if [ $i -eq 10 ]; then
+        echo "❌ Frontend no responde después de 10 intentos"
+        echo "📋 Logs del frontend:"
+        docker compose logs frontend --tail=50
+        exit 1
     fi
-ENDSSH
+done
 
-echo -e "${GREEN}✅ Despliegue completado!${NC}"
-echo -e "${GREEN}🌐 Aplicación disponible en: http://facturacion.konsulta.ivitec.mx${NC}"
-echo -e "${GREEN}🔧 API disponible en: http://facturacion.konsulta.ivitec.mx:8000${NC}"
+# Verificar base de datos
+echo "🔍 Verificando base de datos..."
+for i in {1..10}; do
+    if docker compose exec -T db mysqladmin ping -h localhost --silent; then
+        echo "✅ Base de datos está funcionando correctamente"
+        break
+    else
+        echo "⏳ Intento $i/10: Base de datos no está lista, esperando..."
+        sleep 10
+    fi
+    if [ $i -eq 10 ]; then
+        echo "❌ Base de datos no responde después de 10 intentos"
+        echo "📋 Logs de la base de datos:"
+        docker compose logs db --tail=50
+        exit 1
+    fi
+done
 
-# Limpiar archivos temporales
-rm -rf $DEPLOY_DIR
-
-echo -e "${YELLOW}📋 Comandos útiles para el servidor:${NC}"
-echo "  - Ver logs: ssh $SERVER_USER@$SERVER_HOST 'cd $REMOTE_DIR && docker-compose logs -f'"
-echo "  - Reiniciar: ssh $SERVER_USER@$SERVER_HOST 'cd $REMOTE_DIR && docker-compose restart'"
-echo "  - Detener: ssh $SERVER_USER@$SERVER_HOST 'cd $REMOTE_DIR && docker-compose down'"
+echo ""
+echo "🎉 ¡Deployment completado exitosamente!"
+echo "📱 Aplicación disponible en: http://31.220.98.150:8080"
+echo "🔧 API disponible en: http://31.220.98.150:8000"
+echo "🗄️  Base de datos disponible en: 31.220.98.150:3306"
+echo ""
+echo "📋 Para ver logs en tiempo real:"
+echo "   docker compose logs -f"
+echo ""
+echo "🛑 Para detener la aplicación:"
+echo "   docker compose down"
+echo ""
