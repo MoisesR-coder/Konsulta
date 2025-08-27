@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: pension-mysql-prod
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: pension_db
+      MYSQL_USER: pension_user
+      MYSQL_PASSWORD: pension_password
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data_prod:/var/lib/mysql
+    networks:
+      - pension-network-prod
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pension-backend-prod
+    environment:
+      - DATABASE_URL=mysql+pymysql://pension_user:pension_password@mysql:3306/pension_db
+      - ENVIRONMENT=production
+    ports:
+      - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    volumes:
+      - ./data/processed_files:/app/processed_files
+    networks:
+      - pension-network-prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: pension-frontend-prod
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - pension-network-prod
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  mysql_data_prod:
+
+networks:
+  pension-network-prod:
+    driver: bridge
