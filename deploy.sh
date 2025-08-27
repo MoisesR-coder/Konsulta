@@ -2,7 +2,7 @@
 
 # Script de deployment para producción
 # Servidor: 31.220.98.150
-# Puertos: Frontend 8080, Backend 8000, MySQL 3306
+# Puertos: Frontend 8080, Backend 8000, MySQL 3307
 
 set -e
 
@@ -10,7 +10,7 @@ echo "🚀 Iniciando deployment de la aplicación Auth..."
 echo "📍 Servidor: 31.220.98.150"
 echo "🌐 Frontend: Puerto 8080"
 echo "⚙️  Backend: Puerto 8000"
-echo "🗄️  Base de datos: Puerto 3306"
+echo "🗄️  Base de datos: Puerto 3307"
 echo ""
 
 # Verificar que Docker esté ejecutándose
@@ -99,7 +99,7 @@ echo ""
 echo "🎉 ¡Deployment completado exitosamente!"
 echo "📱 Aplicación disponible en: http://31.220.98.150:8080"
 echo "🔧 API disponible en: http://31.220.98.150:8000"
-echo "🗄️  Base de datos disponible en: 31.220.98.150:3306"
+echo "🗄️  Base de datos disponible en: 31.220.98.150:3307"
 echo ""
 echo "📋 Para ver logs en tiempo real:"
 echo "   docker compose logs -f"

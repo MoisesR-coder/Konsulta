@@ -1,14 +1,14 @@
-# Script de deployment para producción (PowerShell)
+# Script de deployment para producción
 # Servidor: 31.220.98.150
-# Puertos: Frontend 8080, Backend 8000, MySQL 3306
+# Puertos: Frontend 8080, Backend 8000, MySQL 3307
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "🚀 Iniciando deployment de la aplicación Auth..." -ForegroundColor Green
 Write-Host "📍 Servidor: 31.220.98.150" -ForegroundColor Cyan
-Write-Host "🌐 Frontend: Puerto 8080" -ForegroundColor Cyan
-Write-Host "⚙️  Backend: Puerto 8000" -ForegroundColor Cyan
-Write-Host "🗄️  Base de datos: Puerto 3306" -ForegroundColor Cyan
+Write-Host "🌐 Frontend: Puerto 8080" -ForegroundColor Green
+Write-Host "⚙️  Backend: Puerto 8000" -ForegroundColor Green
+Write-Host "🗄️  Base de datos: Puerto 3307" -ForegroundColor Green
 Write-Host ""
 
 # Verificar que Docker esté ejecutándose
@@ -119,9 +119,9 @@ if (-not $dbReady) {
 
 Write-Host ""
 Write-Host "🎉 ¡Deployment completado exitosamente!" -ForegroundColor Green
-Write-Host "📱 Aplicación disponible en: http://31.220.98.150:8080" -ForegroundColor Cyan
-Write-Host "🔧 API disponible en: http://31.220.98.150:8000" -ForegroundColor Cyan
-Write-Host "🗄️  Base de datos disponible en: 31.220.98.150:3306" -ForegroundColor Cyan
+Write-Host "📱 Aplicación disponible en: http://31.220.98.150:8080" -ForegroundColor Green
+Write-Host "🔧 API disponible en: http://31.220.98.150:8000" -ForegroundColor Green
+Write-Host "🗄️  Base de datos disponible en: 31.220.98.150:3307" -ForegroundColor Green
 Write-Host ""
 Write-Host "📋 Para ver logs en tiempo real:" -ForegroundColor Yellow
 Write-Host "   docker compose logs -f" -ForegroundColor White
