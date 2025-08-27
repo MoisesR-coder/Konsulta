@@ -91,12 +91,23 @@ sleep 30
 # Verificar estado de los contenedores
 docker-compose ps
 
+# Reconstruir imágenes para asegurar configuración actualizada
+echo "Reconstruyendo imágenes Docker..."
+docker-compose build --no-cache
+
+# Iniciar servicios
+echo "Iniciando servicios..."
+docker-compose up -d
+
 # Verificar salud de los servicios
-    echo "Verificando salud del backend..."
-    curl -f http://31.220.98.150:8000/health || echo "Backend no responde"
-    
-    echo "Verificando frontend..."
-    curl -f http://31.220.98.150:81 || echo "Frontend no responde"
+echo "Verificando salud del backend..."
+curl -f http://31.220.98.150:8000/health || echo "Backend no responde"
+
+echo "Verificando frontend..."
+curl -f http://31.220.98.150:81 || echo "Frontend no responde"
+
+echo "Verificando logs de contenedores..."
+docker-compose logs --tail=20
 "@
     
     # Ejecutar comandos de despliegue

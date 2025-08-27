@@ -12,6 +12,9 @@ WORKDIR /app
 ARG VITE_API_BASE_URL=http://31.220.98.150:81/api
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
+# Debug: Mostrar la variable de entorno
+RUN echo "Building with VITE_API_BASE_URL: $VITE_API_BASE_URL"
+
 # Copiar package.json y package-lock.json
 COPY package*.json ./n
 # Instalar dependencias

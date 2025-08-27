@@ -90,12 +90,29 @@ ssh $SERVER_USER@$SERVER_HOST << ENDSSH
     # Verificar estado de los contenedores
     docker-compose ps
     
-    # Verificar salud de los servicios
-    echo "Verificando salud del backend..."
-    curl -f http://31.220.98.150:8000/health || echo "Backend no responde"
+    # Verificar que los servicios estén funcionando
+    echo "Verificando servicios..."
+    sleep 15
     
-    echo "Verificando frontend..."
-    curl -f http://31.220.98.150:81 || echo "Frontend no responde"
+    # Verificar backend
+    if curl -f http://31.220.98.150:8000/health > /dev/null 2>&1; then
+        echo "✓ Backend funcionando correctamente"
+    else
+        echo "✗ Error: Backend no responde"
+    fi
+    
+    # Verificar frontend
+    if curl -f http://31.220.98.150:81/health > /dev/null 2>&1; then
+        echo "✓ Frontend funcionando correctamente"
+    else
+        echo "✗ Error: Frontend no responde"
+    fi
+    
+    # Mostrar logs si hay problemas
+    if ! curl -f http://31.220.98.150:8000/health > /dev/null 2>&1 || ! curl -f http://31.220.98.150:81/health > /dev/null 2>&1; then
+        echo "Verificando logs de contenedores..."
+        docker-compose logs --tail=20
+    fi
 ENDSSH
 
 echo -e "${GREEN}✅ Despliegue completado!${NC}"
