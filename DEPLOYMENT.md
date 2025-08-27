@@ -6,7 +6,7 @@
 **Puertos:**
 - Frontend: 8080
 - Backend: 8000  
-- Base de datos MySQL: 3307
+- Base de datos MySQL: 3308
 
 ## 📋 Prerrequisitos
 
@@ -14,7 +14,7 @@
 2. **Puertos abiertos** en el firewall:
    - 8080 (Frontend)
    - 8000 (Backend)
-   - 3307 (MySQL)
+   - 3308 (MySQL)
 
 ## 🛠️ Instrucciones de Deployment
 
@@ -81,7 +81,7 @@ docker compose up -d
 
 **Configuración MySQL:**
 - Host: localhost (desde el servidor)
-- Puerto: 3307
+- Puerto: 3308
 - Base de datos: auth_db
 - Usuario: root
 - Contraseña: rootpassword
@@ -89,7 +89,7 @@ docker compose up -d
 **Conexión desde aplicaciones externas:**
 ```
 Host: 31.220.98.150
-Puerto: 3307
+Puerto: 3308
 Base de datos: auth_db
 Usuario: auth_user
 Contraseña: auth_password
