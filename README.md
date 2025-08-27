@@ -82,9 +82,9 @@ docker-compose -f docker-compose.prod.yml up -d
 ```
 
 3. **Acceder a la aplicación**:
-   - Frontend: http://localhost:3000 (desarrollo) / http://localhost:8080 (producción)
-   - Backend API: http://localhost:8000
-   - Documentación API: http://localhost:8000/docs
+   - Frontend: http://31.220.98.150:81
+   - Backend API: http://31.220.98.150:81/api
+   - Documentación API: http://31.220.98.150:81/api/docs
 
 ### Opción 2: Desarrollo Local
 

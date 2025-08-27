@@ -39,7 +39,7 @@ services:
       - DB_USER=${MYSQL_USER:-pension_user}
       - DB_PASSWORD=${MYSQL_PASSWORD:-pension_pass_2024}
       - DB_NAME=${MYSQL_DATABASE:-plantillas_db}
-      - CORS_ORIGINS=http://31.220.98.150:81,http://31.220.98.150,http://localhost:5173,http://127.0.0.1:5173
+      - CORS_ORIGINS=http://31.220.98.150:81,http://31.220.98.150
     volumes:
       - backend_data:/app/processed_files
     networks:
