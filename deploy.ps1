@@ -92,11 +92,11 @@ sleep 30
 docker-compose ps
 
 # Verificar salud de los servicios
-echo "Verificando salud del backend..."
-curl -f http://localhost:8000/health || echo "Backend no responde"
-
-echo "Verificando frontend..."
-curl -f http://localhost:80 || echo "Frontend no responde"
+    echo "Verificando salud del backend..."
+    curl -f http://31.220.98.150:8000/health || echo "Backend no responde"
+    
+    echo "Verificando frontend..."
+    curl -f http://31.220.98.150:81 || echo "Frontend no responde"
 "@
     
     # Ejecutar comandos de despliegue

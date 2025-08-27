@@ -92,10 +92,10 @@ ssh $SERVER_USER@$SERVER_HOST << ENDSSH
     
     # Verificar salud de los servicios
     echo "Verificando salud del backend..."
-    curl -f http://localhost:8000/health || echo "Backend no responde"
+    curl -f http://31.220.98.150:8000/health || echo "Backend no responde"
     
     echo "Verificando frontend..."
-    curl -f http://localhost:80 || echo "Frontend no responde"
+    curl -f http://31.220.98.150:81 || echo "Frontend no responde"
 ENDSSH
 
 echo -e "${GREEN}✅ Despliegue completado!${NC}"
