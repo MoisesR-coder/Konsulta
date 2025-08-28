@@ -38,7 +38,7 @@ app = FastAPI(
 # Obtener orígenes permitidos desde variables de entorno
 cors_origins = os.getenv(
     "CORS_ORIGINS", 
-    "http://31.220.98.150:8080,http://31.220.98.150"
+    "http://31.220.98.150:81,http://31.220.98.150"
 ).split(",")
 
 app.add_middleware(
@@ -70,23 +70,22 @@ class PaginatedProcessingResult(BaseModel):
 
 # Inicializar base de datos MySQL
 def init_db():
-    max_retries = 10
-    retry_delay = 5
-    for attempt in range(max_retries):
-        try:
-            if test_connection():
-                create_tables()
-                logger.info("Tablas creadas exitosamente")
-                return True
-            else:
-                raise Exception("Connection failed")
-        except Exception as e:
-            logger.warning(f"Intento de conexión DB {attempt+1} falló: {e}")
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-            else:
-                logger.error("Máximos reintentos alcanzados")
-                return False
+    try:
+        # Verificar conexión
+        if not test_connection():
+            logger.error("No se pudo conectar a MySQL. Verifica la configuración.")
+            return False
+            
+        # Crear tablas
+        create_tables()
+        logger.info("Tablas creadas exitosamente")
+        
+        # Default user creation removed - no authentication needed
+            
+        return True
+    except Exception as e:
+        logger.error(f"Error inicializando base de datos: {e}")
+        return False
 
 # Authentication functions removed - no authentication needed
 
