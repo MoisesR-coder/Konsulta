@@ -1,223 +1,69 @@
-# Konsulta - Sistema de Procesamiento de Archivos Excel
+# Sistema de Autenticación
 
 ## Descripción
-
-Konsulta es un sistema web completo para el procesamiento automatizado de archivos Excel de dispersión de pagos. Permite a los usuarios cargar archivos Excel, procesarlos automáticamente y descargar los resultados con formato específico para pagos de pensiones.
-
-## Características Principales
-
-- 🔐 **Autenticación de usuarios** con JWT
-- 📊 **Procesamiento automático** de archivos Excel
-- 📁 **Gestión de archivos** con historial de procesamiento
-- 🔄 **API RESTful** completa
-- 🐳 **Containerización** con Docker
-- 🚀 **Despliegue en producción** configurado
-- 📱 **Interfaz web moderna** con React
-
-## Tecnologías Utilizadas
-
-### Backend
-- **FastAPI** - Framework web moderno y rápido
-- **SQLite/MySQL** - Base de datos
-- **Pandas** - Procesamiento de datos
-- **OpenPyXL** - Manipulación de archivos Excel
-- **JWT** - Autenticación
-- **Uvicorn** - Servidor ASGI
-
-### Frontend
-- **React 18** - Biblioteca de interfaz de usuario
-- **Vite** - Herramienta de construcción
-- **Tailwind CSS** - Framework de estilos
-- **Axios** - Cliente HTTP
-
-### DevOps
-- **Docker & Docker Compose** - Containerización
-- **Nginx** - Servidor web (producción)
-- **GitHub Actions** - CI/CD (configuración disponible)
+Este proyecto es un sistema de autenticación con un frontend en React y un backend en FastAPI. Incluye procesamiento de archivos Excel para plantillas de pensiones, integración con MySQL y despliegue mediante Docker.
 
 ## Estructura del Proyecto
+- **backend/**: Contiene el servidor FastAPI para la lógica de negocio y API.
+- **frontend/**: Aplicación React para la interfaz de usuario.
+- **data/**: Datos y scripts relacionados con la base de datos.
+- **docker-compose.yml**: Configuración para contenedores Docker.
+- **deploy.sh** y **deploy.ps1**: Scripts de despliegue.
 
-```
-Konsulta/
-├── backend/                 # API Backend (FastAPI)
-│   ├── main.py             # Aplicación principal
-│   ├── database.py         # Configuración de base de datos
-│   ├── requirements.txt    # Dependencias Python
-│   └── Dockerfile          # Imagen Docker del backend
-├── frontend/               # Aplicación Frontend (React)
-│   ├── src/               # Código fuente
-│   ├── package.json       # Dependencias Node.js
-│   ├── vite.config.js     # Configuración de Vite
-│   └── Dockerfile         # Imagen Docker del frontend
-├── docker-compose.yml      # Desarrollo local
-├── docker-compose.prod.yml # Producción
-├── deploy.sh              # Script de despliegue (Linux)
-├── deploy.ps1             # Script de despliegue (Windows)
-└── README.md              # Este archivo
-```
+## Requisitos
+- Python 3.8+
+- Node.js 18+
+- Docker (para despliegue en contenedores)
+- MySQL
 
-## Instalación y Configuración
+## Instalación
 
-### Prerrequisitos
+### Backend
+1. Navega a `backend/`.
+2. Instala dependencias: `pip install -r requirements.txt`.
+3. Configura `.env` con variables de base de datos y CORS.
+4. Ejecuta: `uvicorn main:app --reload --host 0.0.0.0 --port 8000`.
 
-- **Docker** y **Docker Compose**
-- **Node.js** 18+ (para desarrollo local)
-- **Python** 3.8+ (para desarrollo local)
+### Frontend
+1. Navega a `frontend/`.
+2. Instala dependencias: `npm install`.
+3. Configura `.env` con `VITE_API_BASE_URL`.
+4. Ejecuta: `npm run dev`.
 
-### Opción 1: Usando Docker (Recomendado)
+## Despliegue con Docker
+- Ejecuta `docker-compose up -d` para iniciar los servicios.
 
-1. **Clonar el repositorio**:
-```bash
-git clone https://github.com/MoisesR-coder/Konsulta.git
-cd Konsulta
-```
+## Uso
+- Accede al frontend en `http://localhost:5173` (desarrollo).
+- La API está disponible en `http://localhost:8000`.
 
-2. **Ejecutar con Docker Compose**:
-```bash
-# Desarrollo
-docker-compose up -d
+## Proceso de Despliegue
 
-# Producción
-docker-compose -f docker-compose.prod.yml up -d
-```
+### Requisitos para Despliegue
+- Servidor con Docker instalado.
+- Acceso SSH al servidor de producción (ej. IP 31.220.98.150).
+- Configuración de variables de entorno para producción.
 
-3. **Acceder a la aplicación**:
-   - Frontend: http://31.220.98.150:81
-   - Backend API: http://31.220.98.150:81/api
-   - Documentación API: http://31.220.98.150:81/api/docs
+### Pasos para Configuración
+1. **Actualizar Variables de Entorno:**
+   - En `.env` del frontend, configura `VITE_API_BASE_URL` a la URL de producción (ej. `http://31.220.98.150:8000/api`).
+   - En `.env` del backend, actualiza `DATABASE_URL`, `DB_HOST`, `DB_PORT`, etc., para conectar a la base de datos de producción.
+   - Configura `CORS_ORIGINS` en el backend para incluir orígenes de producción (ej. `http://31.220.98.150:80`).
 
-### Opción 2: Desarrollo Local
+2. **Modificaciones en APIs y Endpoints:**
+   - **Endpoint `/upload-process` (en `backend/main.py`):** Actualiza la lógica de procesamiento si es necesario para entornos de producción, como paths de archivos temporales. Cambia el manejo de CORS en `app.add_middleware` para orígenes de producción.
+   - **Endpoint `/` (root):** No requiere cambios, pero verifica que retorne mensajes adecuados en producción.
+   - Si hay endpoints de autenticación (removidos actualmente), actualiza para usar JWT en producción.
+   - En `nginx.conf` del frontend, actualiza el proxy para `/api/` a `http://backend:8000/` y ajusta `Content-Security-Policy` para URLs de producción.
 
-1. **Backend**:
-```bash
-cd backend
-pip install -r requirements.txt
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-```
+3. **Construcción y Despliegue:**
+   - Construye imágenes Docker: `docker-compose build`.
+   - Usa scripts de despliegue: Ejecuta `deploy.sh` (Linux) o `deploy.ps1` (Windows) para subir cambios al servidor.
+   - En el servidor, ejecuta `docker-compose up -d` para iniciar contenedores.
+   - Verifica logs con `docker logs <container>` y corrige errores (ej. puertos, volúmenes).
 
-2. **Frontend**:
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### Otros Requisitos
+- Asegura que los puertos 80, 8000 estén abiertos en el firewall.
+- Configura volúmenes persistentes para la base de datos.
+- Monitorea con herramientas como Docker Stats o logs.
 
-## Uso del Sistema
-
-### 1. Registro e Inicio de Sesión
-- Crear una cuenta nueva o iniciar sesión
-- El sistema utiliza autenticación JWT
-
-### 2. Procesamiento de Archivos
-- Subir archivo Excel con el formato requerido
-- El sistema procesará automáticamente el archivo
-- Descargar el archivo procesado
-
-### 3. Historial
-- Ver todos los archivos procesados
-- Descargar archivos anteriores
-- Filtrar por fechas
-
-## API Endpoints
-
-### Autenticación
-- `POST /register` - Registro de usuario
-- `POST /login` - Inicio de sesión
-- `GET /verify-token` - Verificar token
-
-### Procesamiento
-- `POST /upload` - Subir y procesar archivo
-- `GET /download/{processing_id}` - Descargar archivo procesado
-- `GET /history` - Obtener historial de procesamiento
-- `GET /health` - Estado del servicio
-
-### Documentación Completa
-Visita `/docs` en tu instancia para ver la documentación interactiva de Swagger.
-
-## Formato de Archivo Excel
-
-El archivo Excel debe contener las siguientes columnas:
-- **Nombre** - Nombre del beneficiario
-- **Clabe** - CLABE bancaria (18 dígitos)
-- **Monto** - Cantidad a dispersar
-- **Concepto** - Concepto del pago (opcional)
-
-## Despliegue en Producción
-
-### Usando el Script de Despliegue
-
-**Linux/macOS**:
-```bash
-./deploy.sh
-```
-
-**Windows**:
-```powershell
-.\deploy.ps1
-```
-
-### Configuración Manual
-
-1. **Variables de entorno** (crear `.env.production`):
-```env
-DATABASE_URL=mysql://user:password@localhost:3306/konsulta
-SECRET_KEY=your-secret-key-here
-JWT_SECRET_KEY=your-jwt-secret-here
-ENVIRONMENT=production
-```
-
-2. **Ejecutar en producción**:
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-## Testing
-
-### Pruebas de API
-Se incluyen colecciones de Postman y ejemplos de cURL:
-- `API_Collection.postman_collection.json`
-- `API_Testing_Examples.md`
-
-### Ejecutar Pruebas
-```bash
-# Backend
-cd backend
-python -m pytest
-
-# Frontend
-cd frontend
-npm test
-```
-
-## Contribución
-
-1. Fork el proyecto
-2. Crear una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abrir un Pull Request
-
-## Licencia
-
-Este proyecto está bajo la Licencia MIT. Ver el archivo `LICENSE` para más detalles.
-
-## Soporte
-
-Para soporte técnico o preguntas:
-- Crear un issue en GitHub
-- Contactar al equipo de desarrollo
-
-## Changelog
-
-### v1.0.0
-- ✅ Sistema de autenticación completo
-- ✅ Procesamiento de archivos Excel
-- ✅ API RESTful
-- ✅ Interfaz web moderna
-- ✅ Containerización con Docker
-- ✅ Scripts de despliegue
-- ✅ Documentación completa
-
----
-
-**Desarrollado con ❤️ para automatizar el procesamiento de dispersiones de pago**
