@@ -38,7 +38,7 @@ app = FastAPI(
 # Obtener orígenes permitidos desde variables de entorno
 cors_origins = os.getenv(
     "CORS_ORIGINS", 
-    "http://31.220.98.150:81,http://31.220.98.150"
+    "http://31.220.98.150:8080,http://31.220.98.150"
 ).split(",")
 
 app.add_middleware(
