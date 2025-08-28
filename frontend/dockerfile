@@ -13,7 +13,7 @@ RUN npm ci --only=production
 COPY . .
 
 # Variables de entorno para build
-ARG VITE_API_BASE_URL=http://31.220.98.150:8000/api
+ARG VITE_API_BASE_URL=/api
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 
 # Construir la aplicación
