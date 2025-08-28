@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "81:80"
+    environment:
+      - VITE_API_BASE_URL=http://31.220.98.150:8000/api
+    depends_on:
+      - backend
+    networks:
+      - auth_network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=mysql://root:rootpassword@db:3306/auth_db
+      - CORS_ORIGINS=http://31.220.98.150:81,http://31.220.98.150
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=auth_db
+    depends_on:
+      - db
+    volumes:
+      - ./processed_files:/app/processed_files
+    networks:
+      - auth_network
+
+  db:
+    image: mysql:8.0
+    container_name: auth_mysql
+    ports:
+      - "3308:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=auth_db
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - auth_network
+    command: --default-authentication-plugin=mysql_native_password
+
+volumes:
+  mysql_data:
+
+networks:
+  auth_network:
+    driver: bridge
